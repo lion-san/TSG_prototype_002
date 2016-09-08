@@ -58,7 +58,9 @@ const int chipSelect = 4;//Arduino UNO
 //相補フィルタの保持値
 float prev_pitch = 0.0;
 float prev_roll = 0.0;
- 
+
+String motionData;
+
 //----------------------------------------------------------------------
 //=== Global for GPS ===========================================
 SoftwareSerial  g_gps( RX, TX );
@@ -170,7 +172,7 @@ void loop(void) {
                
                // read three sensors and append to the string:
                //記録用のセンサー値を取得
-               record = updateMotionSensors(true);
+               motionData = updateMotionSensors(true);
 
                //SDカードへの出力
                writeDataToSdcard();
@@ -199,7 +201,7 @@ void writeDataToSdcard()
     
     if(isReaded){
       dataFile.print(gpsData);
-      dataFile.print(record);
+      dataFile.print(motionData);
     }
     else{
       //Serial.println("None GPS.");
@@ -209,7 +211,7 @@ void writeDataToSdcard()
     
     // print to the serial port too:
     Serial.println(gpsData);
-    Serial.println(record);
+    Serial.println(motionData);
     Serial.println(F("================================"));
   }
   // if the file isn't open, pop up an error:
@@ -225,7 +227,7 @@ void writeDataToSdcard()
 /**
  * updateMotionSensors
  */
-String updateMbtionSensors(boolean print)
+String updateMotionSensors(boolean print)
 {
   //Read three sensors data on the memory
   readGyro();
