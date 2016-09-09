@@ -52,6 +52,9 @@ int WRITE_INTERVAL = 1000;
 const int chipSelect = 10;//Arduino Micro
 //###############################################
 
+const int tact_switch = 7;//タクトスイッチ
+boolean switchIs = false;
+
 //ジャイロセンサーの積分値
 //float pitch_g = 0.0;
 //float roll_g = 0.0;
@@ -92,6 +95,9 @@ void setup(void) {
 
   //=======================================================
 
+  //タクトスイッチ
+  pinMode(tact_switch, INPUT);
+
   //=== LSM9DS1 Initialize =====================================
   imu.settings.device.commInterface = IMU_MODE_I2C;
   imu.settings.device.mAddress  = LSM9DS1_M;
@@ -122,6 +128,27 @@ void setup(void) {
  * 　
  */
 void loop(void) {
+
+  switch(digitalRead(tact_switch)){
+
+   case 0://ボタンを押した
+          if(switchIs)//既にOnなら
+            switchIs = false;
+          else
+            switchIs = true;
+          break;
+
+    case 1://ボタン押していない
+            break;
+
+    default:
+            break;
+  }
+
+  //スイッチの判定
+  if(!switchIs) //falseなら、ループする
+    return;
+  
 
   //GPS
   //▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
