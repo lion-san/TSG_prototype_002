@@ -33,8 +33,6 @@
 
 #define DECLINATION -8.58               // Declination (degrees) in Boulder, CO.
 
-//#define MICRO_SD   4                    //Arduino UNO
-//#define MICRO_SD  10                    //Arduino Micro
 
 #define RX 8                            //GPS用のソフトウェアシリアル
 #define TX 9                            //GPS用のソフトウェアシリアル
@@ -47,9 +45,12 @@ LSM9DS1 imu;
 int SAMPLETIME = 10;
 int RECORD_INTERVAL = 100;
 int WRITE_INTERVAL = 1000;
+
+//###############################################
 //MicroSD 
-const int chipSelect = 4;//Arduino UNO
-//const int chipSelect = 10;//Arduino Micro
+//const int chipSelect = 4;//Arduino UNO
+const int chipSelect = 10;//Arduino Micro
+//###############################################
 
 //ジャイロセンサーの積分値
 //float pitch_g = 0.0;
@@ -122,17 +123,14 @@ void setup(void) {
  */
 void loop(void) {
 
-
-
   //GPS
   //▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
   char dt = 0 ;
 
+  motionData = "";
+
     // センテンスデータが有るなら処理を行う
     if (g_gps.available()) {
-
-      //バッファデータにデータがなくなるまで処理
-      while( dt != -1 ){ 
 
         // 1バイト読み出す
         dt = g_gps.read() ;
@@ -166,8 +164,6 @@ void loop(void) {
                //Serial.print("O:");
                //Serial.print( (char *)SentencesData );
 
-               //GPS読み込み完了フラグの更新
-               isReaded = true;
                gpsData = String((char *)SentencesData );
                
                // read three sensors and append to the string:
@@ -183,7 +179,6 @@ void loop(void) {
           }
         }
       }
-    }
 
 }
 
@@ -199,13 +194,8 @@ void writeDataToSdcard()
   // if the file is available, write to it:
   if (dataFile) {
     
-    if(isReaded){
-      dataFile.print(gpsData);
-      dataFile.print(motionData);
-    }
-    else{
-      //Serial.println("None GPS.");
-    }
+    dataFile.print(gpsData);
+    dataFile.print(motionData);
     
     dataFile.close();
     
@@ -227,8 +217,14 @@ void writeDataToSdcard()
 /**
  * updateMotionSensors
  */
+unsigned long time = millis();
 String updateMotionSensors(boolean print)
 {
+
+  Serial.println( millis() - time);
+  time = millis();
+
+  
   //Read three sensors data on the memory
   readGyro();
   readAccel();
@@ -346,43 +342,6 @@ String printAttitude(float gx, float gy, float gz, float ax, float ay, float az,
     return 0.95 * (prev_val + deg_g) + 0.05 * deg_a;
  }
 
-/**
- * カルマンフィルタの計算式
- */
-/*float Q_angle  =  0.001;
-float Q_gyro   =  0.003;
-float R_angle  =  0.03; 
-float x_angle;
-float x_bias = 0;
-float P_00 = 0, P_01 = 0, P_10 = 0, P_11 = 0;
-float  y, S;
-float K_0, K_1;
-float dt=0.005;
-float kal_deg;
-
-float kalmanCalculate(float newAngle, float newRate){
-                
-        x_angle += dt * (newRate - x_bias);
-       
-        P_00 +=  dt * (dt * P_11 - P_01 - P_10 + Q_angle);
-        P_01 -=  dt * P_11;
-        P_10 -=  dt * P_11;
-        P_11 +=  Q_gyro * dt;
-
-        y = newAngle - x_angle;
-        S = P_00 + R_angle;
-        K_0 = P_00 / S;
-        K_1 = P_10 / S;
-
-        x_angle +=  K_0 * y;
-        x_bias  +=  K_1 * y;
-        P_00 -= K_0 * P_00;
-        P_01 -= K_0 * P_01;
-        P_10 -= K_1 * P_00;
-        P_11 -= K_1 * P_01;
-
-    return x_angle;
-}*/
 
 //===============================================
 //
@@ -398,61 +357,6 @@ void setupSoftwareSerial(){
   g_gps.begin(9600);
 }
 
-/**
- * getGpsData
- * GPSの1秒単位の情報を取得
- */
-void getGpsData(){
-
-  char dt = 0 ;
-
-    // センテンスデータが有るなら処理を行う
-    if (g_gps.available()) {
-
-      //バッファデータにデータがなくなるまで処理
-      while( dt != -1 ){ 
-
-        // 1バイト読み出す
-        dt = g_gps.read() ;
-        //Serial.write(dt);
-
-        //Serial.write(dt);//Debug ALL
-        // センテンスの開始
-        if (dt == '$') SentencesNum = 0 ;
-        
-        if (SentencesNum >= 0) {
-          
-          // センテンスをバッファに溜める
-          SentencesData[SentencesNum] = dt ;
-          SentencesNum++ ;
-             
-          // センテンスの最後(LF=0x0Aで判断)
-          if (dt == 0x0a || SentencesNum >= SENTENCES_BUFLEN) {
-    
-            SentencesData[SentencesNum] = '\0' ;
-    
-            //GPS情報の取得
-            getGpsInfo();
-            
-            // センテンスのステータスが"有効"になるまで待つ
-            if ( gpsIsReady() )
-            {
-               // 有効になったら書込み開始
-               //Serial.print("O:");
-               //Serial.print( (char *)SentencesData );
-
-               //GPS読み込み完了フラグの更新
-               isReaded = true;
-               gpsData = String((char *)SentencesData );
-
-               return;
-            }
-          }
-        }
-      }
-    }
-
-}
 
 /**
  * getGpsInfo
