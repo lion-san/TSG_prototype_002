@@ -54,6 +54,8 @@ const int chipSelect = 10;//Arduino Micro
 
 const int tact_switch = 7;//タクトスイッチ
 boolean switchIs = false;
+boolean swithchOn;
+boolean switchRelease;
 
 //ジャイロセンサーの積分値
 //float pitch_g = 0.0;
@@ -132,13 +134,36 @@ void loop(void) {
   switch(digitalRead(tact_switch)){
 
    case 0://ボタンを押した
-          if(switchIs)//既にOnなら
-            switchIs = false;
-          else
-            switchIs = true;
+
+          //離すまでは実行しない
+          if(switchOn)
+              return;
+
+         switchOn = true;
+
+
+          
           break;
 
     case 1://ボタン押していない
+
+           if(switchOn){
+
+            
+           }
+
+
+
+            if(!switchRelease){
+               if(switchIs)//既にOnなら
+                 switchIs = false;
+
+               switchRelease = false;
+            }
+
+            switchRelease = true;
+              
+
             break;
 
     default:
