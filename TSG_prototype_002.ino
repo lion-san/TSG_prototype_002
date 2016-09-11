@@ -48,13 +48,13 @@ int WRITE_INTERVAL = 1000;
 
 //###############################################
 //MicroSD 
-//const int chipSelect = 4;//Arduino UNO
-const int chipSelect = 10;//Arduino Micro
+const int chipSelect = 4;//Arduino UNO
+//const int chipSelect = 10;//Arduino Micro
 //###############################################
 
 const int tact_switch = 7;//タクトスイッチ
-boolean switchIs = false;
-boolean swithchOn;
+boolean switchIs;
+boolean switchOn;
 boolean switchRelease;
 
 //ジャイロセンサーの積分値
@@ -99,6 +99,7 @@ void setup(void) {
 
   //タクトスイッチ
   pinMode(tact_switch, INPUT);
+  switchIs = false;
 
   //=== LSM9DS1 Initialize =====================================
   imu.settings.device.commInterface = IMU_MODE_I2C;
@@ -135,39 +136,30 @@ void loop(void) {
 
    case 0://ボタンを押した
 
-          //離すまでは実行しない
-          if(switchOn)
-              return;
+          switchOn = true;
 
-         switchOn = true;
-
-
-          
           break;
 
-    case 1://ボタン押していない
+   case 1://ボタン押していない
 
            if(switchOn){
 
+             //すでにOnなら、falseにする
+             if(switchIs)
+               switchIs = false;
+             //すでにOffなら、trueにする
+             else
+               switchIs = true;
+
+
+             switchOn = false;
             
            }
 
-
-
-            if(!switchRelease){
-               if(switchIs)//既にOnなら
-                 switchIs = false;
-
-               switchRelease = false;
-            }
-
-            switchRelease = true;
-              
-
-            break;
+           break;
 
     default:
-            break;
+           break;
   }
 
   //スイッチの判定
