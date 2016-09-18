@@ -48,8 +48,8 @@ int WRITE_INTERVAL = 1000;
 
 //###############################################
 //MicroSD 
-const int chipSelect = 4;//Arduino UNO
-//const int chipSelect = 10;//Arduino Micro
+//const int chipSelect = 4;//Arduino UNO
+const int chipSelect = 10;//Arduino Micro
 //###############################################
 
 const int tact_switch = 7;//タクトスイッチ
@@ -100,6 +100,8 @@ void setup(void) {
   //タクトスイッチ
   pinMode(tact_switch, INPUT);
   switchIs = false;
+
+  pinMode(13, OUTPUT);
 
   //=== LSM9DS1 Initialize =====================================
   imu.settings.device.commInterface = IMU_MODE_I2C;
@@ -163,8 +165,13 @@ void loop(void) {
   }
 
   //スイッチの判定
-  if(!switchIs) //falseなら、ループする
+  if(!switchIs){ //falseなら、ループする
+    digitalWrite(13, 0);
     return;
+  }
+  else{
+      digitalWrite(13, 1);
+  }
   
 
   //GPS
