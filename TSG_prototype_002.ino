@@ -21,6 +21,7 @@
 #include <LSM9DS1_Registers.h>
 #include <LSM9DS1_Types.h>
 #include <SoftwareSerial.h>
+#include <TimerOne.h>
 
 
 //#define ADAddr 0x48//
@@ -65,7 +66,7 @@ boolean switchRelease;
 float prev_pitch = 0.0;
 float prev_roll = 0.0;
 
-String motionData;
+volatile String motionData = "";
 
 //----------------------------------------------------------------------
 //=== Global for GPS ===========================================
@@ -101,6 +102,7 @@ void setup(void) {
   pinMode(tact_switch, INPUT);
   switchIs = false;
 
+  //LED
   pinMode(13, OUTPUT);
 
   //=== LSM9DS1 Initialize =====================================
@@ -120,7 +122,14 @@ void setup(void) {
   //=== GPS用のソフトウェアシリアル有効化 =================
   setupSoftwareSerial();
   //=======================================================
-  
+
+  //100ms毎にtimer発火
+  //MsTimer2::set(100, timerFire);
+  //MsTimer2::start();
+
+  Timer1.initialize(100); //マイクロ秒単位で設定
+  Timer1.attachInterrupt(timerFire);
+
 }
 
 /**
@@ -134,6 +143,7 @@ void setup(void) {
  */
 void loop(void) {
 
+  //START switch============================================
   switch(digitalRead(tact_switch)){
 
    case 0://ボタンを押した
@@ -172,21 +182,21 @@ void loop(void) {
   else{
       digitalWrite(13, 1);
   }
-  
+  //END switch ============================================
 
   //GPS
   //▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
   char dt = 0 ;
 
-  motionData = "";
+  //motionData = "";
 
     // センテンスデータが有るなら処理を行う
     if (g_gps.available()) {
-
+//procTime("INIT");
         // 1バイト読み出す
         dt = g_gps.read() ;
         //Serial.write(dt);
-
+//procTime("READ");
         //Serial.write(dt);//Debug ALL
         // センテンスの開始
         if (dt == '$') SentencesNum = 0 ;
@@ -199,18 +209,19 @@ void loop(void) {
              
           // センテンスの最後(LF=0x0Aで判断)
           if (dt == 0x0a || SentencesNum >= SENTENCES_BUFLEN) {
-    
+//procTime("READ OK");    
             SentencesData[SentencesNum] = '\0' ;
-    
+
             //GPS情報の取得
             getGpsInfo();
-
+//procTime("gpsInfo");
             //MotionSensorの値更新
-            updateMotionSensors(false);
-            
+            //updateMotionSensors(false);
+//procTime("updMotion");            
             // センテンスのステータスが"有効"になるまで待つ
             if ( gpsIsReady() )
             {
+//procTime("gpsIsReady");                 
                // 有効になったら書込み開始
                //Serial.print("O:");
                //Serial.print( (char *)SentencesData );
@@ -219,12 +230,11 @@ void loop(void) {
                
                // read three sensors and append to the string:
                //記録用のセンサー値を取得
-               motionData = updateMotionSensors(true);
-
+               //motionData = updateMotionSensors(true);
+//procTime("updMotion Write");    
                //SDカードへの出力
                writeDataToSdcard();
-
-
+//procTime("SD Write");                   
                return;
             }
           }
@@ -246,13 +256,15 @@ void writeDataToSdcard()
   if (dataFile) {
     
     dataFile.print(gpsData);
-    dataFile.print(motionData);
+    String m = motionData.to_s;
+    dataFile.print(m);
     
     dataFile.close();
     
     // print to the serial port too:
-    Serial.println(gpsData);
-    Serial.println(motionData);
+    Serial.print(gpsData);
+    Serial.print(motionData);
+    motionData = "";
     Serial.println(F("================================"));
   }
   // if the file isn't open, pop up an error:
@@ -264,16 +276,38 @@ void writeDataToSdcard()
 
 
 
+/**
+ * procTime
+ */
+unsigned long time = millis();
+void procTime(String s)
+{
+  Serial.print(s);
+  Serial.print(":::");
+  Serial.println( millis() - time);
+  time = millis();
+   
+}
+
+
+/**
+ * 指定秒数間隔で動作
+ */
+
+void timerFire() {
+  procTime("FIRE");
+  motionData += updateMotionSensors(true);
+}
+
 
 /**
  * updateMotionSensors
  */
-unsigned long time = millis();
 String updateMotionSensors(boolean print)
 {
 
-  Serial.println( millis() - time);
-  time = millis();
+  //Serial.println( millis() - time);
+  //time = millis();
 
   
   //Read three sensors data on the memory
